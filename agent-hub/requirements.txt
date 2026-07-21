@@ -1,0 +1,15 @@
+# agent-hub runtime dependencies
+# Install with:  pip install -r requirements.txt
+#
+# APScheduler is pinned to the 3.x series on purpose: version 4.x is a
+# ground-up rewrite with a different API, and all of this code targets 3.x.
+APScheduler>=3.10,<4
+
+# Talks to the Telegram Bot API over HTTPS (used by core/notifier.py).
+requests>=2.31
+
+# Reads settings.yaml (used by core/config.py).
+PyYAML>=6.0
+
+# Loads config/.env into environment variables (used by core/config.py).
+python-dotenv>=1.0

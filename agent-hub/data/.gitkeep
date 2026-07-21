@@ -1,0 +1,2 @@
+# This file just keeps the (otherwise empty) data/ folder in git.
+# The SQLite database itself is created at runtime and is gitignored.

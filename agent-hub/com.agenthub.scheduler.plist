@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- A unique name for this background job. -->
+    <key>Label</key>
+    <string>com.agenthub.scheduler</string>
+
+    <!-- What to run: your virtualenv's python, then main.py.
+         Replace YOUR_USERNAME (and the path, if you put agent-hub elsewhere). -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOUR_USERNAME/agent-hub/.venv/bin/python3</string>
+        <string>/Users/YOUR_USERNAME/agent-hub/main.py</string>
+    </array>
+
+    <!-- Run as if launched from this folder (so relative paths resolve here). -->
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/agent-hub</string>
+
+    <!-- KeepAlive = restart the process if it ever exits or crashes. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Start it as soon as the job is loaded (and at login). -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Capture anything printed to the console into these files. -->
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/agent-hub/logs/launchd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/agent-hub/logs/launchd.err.log</string>
+
+    <!-- Make Python flush its output immediately so logs aren't delayed. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>
