@@ -1,0 +1,18 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# --- agent-hub local state (never commit these) ---
+# Your real secrets live in config/.env — keep them off GitHub.
+config/.env
+# The SQLite database is regenerated at runtime.
+data/*.db
+data/*.db-journal
+# Log files are generated + rotated at runtime.
+logs/*.log
+logs/*.log.*
+launchd.out.log
+launchd.err.log

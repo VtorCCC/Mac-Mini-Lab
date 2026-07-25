@@ -1,0 +1,42 @@
+# =============================================================================
+# agent-hub settings
+# -----------------------------------------------------------------------------
+# This file lets you change how agent-hub behaves WITHOUT editing any Python.
+# After changing anything here, restart the process (or reload the launchd job)
+# for it to take effect.
+# =============================================================================
+
+# The timezone the scheduler uses to interpret task times (e.g. "8:00" below).
+# Use a name from the "tz database", such as:
+#   America/New_York, America/Los_Angeles, Europe/London, Asia/Tokyo
+# Leave it blank (just "timezone:") to use the Mac's own local timezone.
+timezone: "America/New_York"
+
+# How much detail goes into the logs. One of: DEBUG, INFO, WARNING, ERROR.
+# INFO is a good default. Use DEBUG when you're troubleshooting.
+log_level: "INFO"
+
+# -----------------------------------------------------------------------------
+# Per-task settings.
+# The key (e.g. "health_check") must match the task's `name`.
+# For each task you can override:
+#   enabled:  true/false   -> turn a task on or off without deleting its file
+#   schedule: {...}         -> when it runs (overrides the default in the code)
+# Anything you leave out falls back to the default defined in the task's code.
+# -----------------------------------------------------------------------------
+tasks:
+
+  health_check:
+    enabled: true
+    schedule:
+      trigger: cron       # "cron" = run at specific clock times
+      hour: 8             # 8 AM...
+      minute: 0           # ...on the dot, every day
+
+  # This one ships turned OFF. It's a template you can copy. See
+  # study/04-adding-a-new-task.md. Flip enabled to true to watch it run.
+  example_task:
+    enabled: false
+    schedule:
+      trigger: interval   # "interval" = run every N minutes/hours
+      minutes: 30

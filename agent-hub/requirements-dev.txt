@@ -1,0 +1,5 @@
+# Extra tools for local development / running the test suite.
+# Install with:  pip install -r requirements-dev.txt
+# (You do NOT need these to run agent-hub in production.)
+-r requirements.txt
+pytest>=8.0
