@@ -13,3 +13,25 @@ PyYAML>=6.0
 
 # Loads config/.env into environment variables (used by core/config.py).
 python-dotenv>=1.0
+
+# --- news_digest task (services/news/) ---------------------------------------
+# Only needed if the news_digest task is enabled in settings.yaml.
+
+# Parses RSS/Atom feeds (used by services/news/fetcher.py).
+feedparser>=6.0.12
+
+# Parses the irregular date strings feeds use when the pre-parsed form is
+# missing (used by services/news/fetcher.py).
+python-dateutil>=2.9
+
+# Schemas for the digest, and the structured output the LLM must return.
+pydantic>=2.13
+
+# Runs the two LLM agents against Ollama's OpenAI-compatible endpoint. The
+# "slim" distribution with the openai extra pulls only that one provider
+# instead of every model backend pydantic-ai supports.
+#
+# Pinned to the 2.x series. The original NewsDocsObtainer pinned "<1.0", which
+# now resolves to 0.8.1 — that version imports opentelemetry._events, a module
+# removed in current opentelemetry-api, so it fails at import time.
+pydantic-ai-slim[openai]>=2.0,<3

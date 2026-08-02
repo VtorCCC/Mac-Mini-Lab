@@ -44,7 +44,8 @@ One always-on Python process that hosts many scheduled tasks. Read
 | `core/storage.py` | SQLite record of every task run |
 | `core/notifier.py` | Telegram alerts; designed never to crash the app |
 | `tasks/` | One task class per file, auto-discovered |
-| `settings.yaml` | Timezone, log level, per-task `enabled` + `schedule` |
+| `services/` | Libraries too big for a single task file (e.g. `services/news/`) |
+| `settings.yaml` | Timezone, log level, per-task `enabled` + `schedule` + `options` |
 
 Load-bearing invariants — do not break these without saying so explicitly:
 
@@ -56,6 +57,13 @@ Load-bearing invariants — do not break these without saying so explicitly:
   not in Python. A task's class attributes are only the *default*.
 - **APScheduler is pinned to 3.x.** 4.x is a different API; don't "upgrade" it.
 - **Notifier failures are non-fatal.** Telegram being down must never break a run.
+- **Never call `sys.exit()` inside a task.** `SystemExit` derives from
+  `BaseException`, so it slips past `_guarded_run`'s `except Exception` and
+  kills the whole process. Raise a normal exception instead. (This bit the
+  `news_digest` port — see `services/news/summarizer.py`.)
+- **Heavy task dependencies are imported inside `run()`, not at module level.**
+  Discovery imports every module in `tasks/` at startup, so a top-level import
+  of an optional library means one missing package stops agent-hub entirely.
 
 ## 3. Environment reality
 

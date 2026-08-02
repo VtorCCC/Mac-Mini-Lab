@@ -11,6 +11,8 @@ config/.env
 # The SQLite database is regenerated at runtime.
 data/*.db
 data/*.db-journal
+# Generated news digests — one markdown file per day.
+data/news/
 # Log files are generated + rotated at runtime.
 logs/*.log
 logs/*.log.*

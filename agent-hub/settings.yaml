@@ -33,6 +33,70 @@ tasks:
       hour: 8             # 8 AM...
       minute: 0           # ...on the dot, every day
 
+  # The morning news briefing. Fetches RSS, summarizes it with a local LLM
+  # (Ollama), writes data/news/YYYY-MM-DD.md, and Telegrams you the highlights.
+  # Full walkthrough: study/11-the-news-digest-task.md
+  news_digest:
+    enabled: true
+    schedule:
+      trigger: cron
+      hour: 7             # 7 AM, an hour before health_check
+      minute: 0
+
+    # Everything below is read by the task itself. Delete any line to fall back
+    # to the default in services/news/config.py.
+    options:
+      # Must match a model that `ollama list` shows on the Mac mini.
+      model: "gemma3:latest"
+      base_url: "http://localhost:11434/v1"
+
+      # How the model is asked to return structured JSON:
+      #   native   - Ollama constrains output to the JSON schema. Works widely,
+      #              including on models with no tool support. Start here.
+      #   tool     - pydantic-ai's default; needs a tool-capable model.
+      #   prompted - just asks nicely in the prompt. Weakest; last resort.
+      output_mode: "native"
+
+      # Only include articles published in the last N hours.
+      lookback_hours: 24
+
+      # Caps that keep the prompt (and the run time) reasonable.
+      item_cap_per_feed: 5
+      category_total_cap: 15
+
+      # How many headlines per category go into the Telegram message. The
+      # markdown file always contains all of them.
+      notice_items_per_category: 3
+
+      # false -> if Ollama is down, still send headlines without summaries.
+      # true  -> treat it as a task failure instead (you get an error alert).
+      require_llm: false
+
+      # Where the dated markdown files go. Relative paths are resolved against
+      # the agent-hub folder, never the working directory.
+      output_dir: "data/news"
+
+      # Feeds, grouped into the sections of the digest. Add or remove freely —
+      # they must be real RSS/Atom URLs, not ordinary web pages.
+      feeds:
+        "Technology & AI":
+          - "https://hnrss.org/frontpage"
+          - "https://feeds.arstechnica.com/arstechnica/index"
+          - "https://www.theverge.com/rss/index.xml"
+          - "https://techcrunch.com/feed/"
+        "World":
+          - "https://feeds.bbci.co.uk/news/world/rss.xml"
+          - "https://www.aljazeera.com/xml/rss/all.xml"
+          - "https://www.theguardian.com/world/rss"
+        "Finance":
+          - "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain"
+          - "https://www.ft.com/rss/home"
+          - "https://www.economist.com/finance-and-economics/rss.xml"
+        "Science":
+          - "https://www.nature.com/nature.rss"
+          - "https://www.quantamagazine.org/feed/"
+          - "https://www.sciencedaily.com/rss/all.xml"
+
   # This one ships turned OFF. It's a template you can copy. See
   # study/04-adding-a-new-task.md. Flip enabled to true to watch it run.
   example_task:

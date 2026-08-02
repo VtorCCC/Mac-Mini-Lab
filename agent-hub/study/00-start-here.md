@@ -50,6 +50,7 @@ important idea in this project.
 | Find/read the logs | [08 – Logging](08-logging.md) |
 | Fix something that's broken | [09 – Troubleshooting / FAQ](09-troubleshooting-faq.md) |
 | Look up a word I don't know | [10 – Glossary](10-glossary.md) |
+| See a real task, warts and all | [11 – The news digest task](11-the-news-digest-task.md) |
 
 ## Two commands to remember
 

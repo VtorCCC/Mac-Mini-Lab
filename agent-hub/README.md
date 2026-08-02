@@ -5,8 +5,14 @@ Mac mini. One process wakes up, runs your jobs on their schedules, records what
 happened, and messages you on Telegram if something breaks — all kept alive by
 macOS's built-in `launchd`.
 
-It ships with one real task, **`health_check`**, which every morning at 8:00
-sends you uptime, free disk space, and how many tasks ran in the last 24 hours.
+It ships with two real tasks:
+
+- **`health_check`** — every morning at 8:00, sends you uptime, free disk space,
+  and how many tasks ran in the last 24 hours.
+- **`news_digest`** — every morning at 7:00, fetches RSS across four categories,
+  summarizes it with a local LLM ([Ollama](https://ollama.com/)), writes
+  `data/news/YYYY-MM-DD.md`, and Telegrams you the highlights. Full walkthrough:
+  [`study/11-the-news-digest-task.md`](study/11-the-news-digest-task.md).
 
 > **New to coding?** Head to the [`study/`](study/) folder. It's a friendly,
 > guided tour of this exact project so you can confidently edit and maintain it.
@@ -31,6 +37,9 @@ sends you uptime, free disk space, and how many tasks ran in the last 24 hours.
 - Python 3.11+
 - A Telegram bot (optional — the app runs fine without one, it just won't send
   messages; see [`study/06-telegram-setup.md`](study/06-telegram-setup.md)).
+- [Ollama](https://ollama.com/) with a model pulled — only for the `news_digest`
+  task. Without it that task degrades to headlines without summaries; disable it
+  in `settings.yaml` if you don't want it at all.
 
 ---
 
@@ -185,10 +194,14 @@ agent-hub/
 │   └── context.py          # AppContext: the shared-services bundle tasks receive
 ├── tasks/                  # your jobs live here, one class per file (auto-discovered)
 │   ├── health_check.py     # the daily health report (required task)
+│   ├── news_digest.py      # the morning news briefing (thin: calls services/news)
 │   └── example_task.py     # a disabled, copy-me template
+├── services/               # libraries too big for a single task file
+│   └── news/               # RSS fetch, LLM summarization, markdown output
 ├── tests/                  # a small pytest suite
 ├── logs/                   # rotating logs land here (gitignored)
 ├── data/                   # the SQLite database lands here (gitignored)
+│   └── news/               # generated daily digests (gitignored)
 └── study/                  # << beginner-friendly guides to this project >>
 ```
 
@@ -223,3 +236,4 @@ The [`study/`](study/) folder is a mini-course built around *this* codebase:
 | [08 – Logging](study/08-logging.md) | Where logs go, rotation, log levels |
 | [09 – Troubleshooting / FAQ](study/09-troubleshooting-faq.md) | Common problems + fixes |
 | [10 – Glossary](study/10-glossary.md) | Plain-language definitions |
+| [11 – The news digest task](study/11-the-news-digest-task.md) | A real task end-to-end: RSS, a local LLM, and the traps |

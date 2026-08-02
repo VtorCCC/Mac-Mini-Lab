@@ -9,7 +9,9 @@ A collection of small, independent projects that run on a Mac mini kept on 24/7
 
 - [`agent-hub/`](agent-hub/) — an always-on Python process that hosts scheduled
   tasks (APScheduler + `launchd`), with a beginner-friendly
-  [`study/`](agent-hub/study/) guide series.
+  [`study/`](agent-hub/study/) guide series. Currently hosts a daily
+  `health_check` and a `news_digest` that summarizes the morning's RSS with a
+  local LLM and messages it to Telegram.
 
 ## Tracking
 

@@ -67,3 +67,19 @@ def task_schedule(
     if schedule:
         return dict(schedule)
     return dict(default)
+
+
+def task_options(settings: dict[str, Any], task_name: str) -> dict[str, Any]:
+    """The task's own `options:` block — its settings beyond enabled/schedule.
+
+    Every task may keep arbitrary configuration here, e.g.
+
+        tasks:
+          news_digest:
+            options:
+              model: "gemma3:latest"
+
+    agent-hub does not interpret the contents; the task reads what it needs.
+    Returns {} when the task has no options, so callers can rely on .get().
+    """
+    return _task_section(settings, task_name).get("options") or {}
