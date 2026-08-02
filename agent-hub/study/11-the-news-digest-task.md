@@ -174,6 +174,23 @@ the output mode are the two things that genuinely have to be re-proven on the
 Mac, because both depend on which models Ollama has there. Work through these in
 order — each step's failure has a different fix.
 
+### 0. Install the new dependencies
+
+This task added four (`feedparser`, `python-dateutil`, `pydantic`,
+`pydantic-ai-slim`). Pulling the code is not enough — from `agent-hub/`:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then confirm the task is visible before going further:
+
+```bash
+python main.py --list
+```
+
+`news_digest` should appear as `enabled`. If it doesn't, nothing below matters.
+
 ### 1. Is Ollama there, and what does it have?
 
 ```bash

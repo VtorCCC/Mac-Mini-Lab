@@ -65,6 +65,8 @@ Everything below has been *written* but never *run on the Mac mini*:
 For `news_digest` specifically — the step-by-step version of this list is in
 [`study/11-the-news-digest-task.md`](agent-hub/study/11-the-news-digest-task.md#verifying-this-on-the-mac-mini):
 
+- [ ] `pip install -r requirements.txt` rerun (this task added four deps), and
+      `--list` shows `news_digest` as enabled
 - [ ] `ollama list` shows a model, and `ollama run <model>` actually responds
       (this is what caught `gemma4` on Windows — it crashed on a plain prompt)
 - [ ] `model:` in `settings.yaml` set to that model
