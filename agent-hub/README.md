@@ -237,3 +237,4 @@ The [`study/`](study/) folder is a mini-course built around *this* codebase:
 | [09 – Troubleshooting / FAQ](study/09-troubleshooting-faq.md) | Common problems + fixes |
 | [10 – Glossary](study/10-glossary.md) | Plain-language definitions |
 | [11 – The news digest task](study/11-the-news-digest-task.md) | A real task end-to-end: RSS, a local LLM, and the traps |
+| [12 – Reporting a bug on GitHub](study/12-reporting-a-bug-on-github.md) | Turning "it's broken" into an issue someone can act on |

@@ -8,8 +8,11 @@ normal Exception, never SystemExit.
 The happy path (a real model actually summarizing) needs Ollama running and is
 covered by `python main.py --run-once news_digest` instead.
 """
+import socket
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from urllib.request import HTTPSHandler
 
 import pytest
 
@@ -21,6 +24,7 @@ from core.notifier import TelegramNotifier
 from core.scheduler import AgentScheduler, discover_task_classes
 from core.storage import Storage
 from services.news import digest as digest_module
+from services.news import fetcher as fetcher_module
 from services.news import summarizer
 from services.news.config import NewsConfig
 from services.news.digest import build_digest, chunk_message, format_notice
@@ -70,6 +74,71 @@ def test_config_does_not_share_the_default_feed_dict():
     cfg.feeds["World"].append("https://example.com/rss")
     fresh = NewsConfig.from_options({}, Path("/base"))
     assert "https://example.com/rss" not in fresh.feeds["World"]
+
+
+# -----------------------------------------------------------------------------
+# Fetching over HTTPS — certificates and timeouts
+# -----------------------------------------------------------------------------
+
+def _stub_parse(captured: dict):
+    """Stand in for feedparser.parse and record how it was called."""
+    def _parse(url, **kwargs):
+        captured["handlers"] = kwargs.get("handlers")
+        captured["timeout_during_call"] = socket.getdefaulttimeout()
+        return SimpleNamespace(bozo=0, entries=[], feed=None)
+
+    return _parse
+
+
+def test_feeds_are_fetched_with_the_certifi_bundle(monkeypatch):
+    """Regression: urllib does not carry a CA bundle of its own.
+
+    feedparser fetches over urllib, which trusts whatever OpenSSL was built to
+    look at. On the Mac mini that location was empty, so all 13 feeds failed
+    with CERTIFICATE_VERIFY_FAILED while Telegram — which goes through requests
+    and its bundled certifi — kept working perfectly. Handing urllib the same
+    bundle is what stops the two paths from disagreeing.
+    """
+    captured: dict = {}
+    monkeypatch.setattr(fetcher_module.feedparser, "parse", _stub_parse(captured))
+
+    fetcher_module.fetch_feed("https://example.com/rss", 5, 400)
+
+    handlers = captured["handlers"]
+    assert handlers, "feedparser must be given an explicit HTTPS handler"
+    assert isinstance(handlers[0], HTTPSHandler)
+    assert handlers[0]._context is fetcher_module._SSL_CONTEXT
+    # And that context must actually have authorities loaded — an empty store
+    # is precisely the broken macOS state this guards against.
+    assert fetcher_module._SSL_CONTEXT.cert_store_stats()["x509_ca"] > 0
+
+
+def test_the_fetch_timeout_is_applied_and_then_restored(monkeypatch):
+    captured: dict = {}
+    monkeypatch.setattr(fetcher_module.feedparser, "parse", _stub_parse(captured))
+    socket.setdefaulttimeout(None)
+
+    fetcher_module.fetch_feed("https://example.com/rss", 5, 400)
+
+    assert captured["timeout_during_call"] == fetcher_module._FEED_TIMEOUT_SECONDS
+    # Global state must be handed back exactly as it was found.
+    assert socket.getdefaulttimeout() is None
+
+
+def test_the_timeout_is_restored_even_when_the_fetch_explodes(monkeypatch):
+    """The `finally` is the point.
+
+    setdefaulttimeout is process-wide, so a feed that blows up must not leave
+    every other task in the hub running under a timeout it never asked for.
+    """
+    def _boom(*args, **kwargs):
+        raise RuntimeError("network on fire")
+
+    monkeypatch.setattr(fetcher_module.feedparser, "parse", _boom)
+    socket.setdefaulttimeout(None)
+
+    assert fetcher_module.fetch_feed("https://example.com/rss", 5, 400) == []
+    assert socket.getdefaulttimeout() is None
 
 
 # -----------------------------------------------------------------------------

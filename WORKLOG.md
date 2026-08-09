@@ -31,6 +31,72 @@ For the *current* state of things, see [`STATUS.md`](STATUS.md).
 
 ---
 
+## 2026-08-09 — Fix `news_digest` fetching nothing on the Mac mini (SSL certs)
+
+**Who:** both
+**Component:** agent-hub · docs
+
+**Done**
+- Diagnosed the first real Mac mini run of `news_digest` (2026-08-06), which
+  reported `finished OK` but built a digest from **0 items**. Every one of the
+  13 feeds had failed with `SSL: CERTIFICATE_VERIFY_FAILED`.
+- `services/news/fetcher.py` now builds an `ssl` context from the certifi bundle
+  and hands it to feedparser via an explicit `HTTPSHandler`.
+- Added the fetch timeout that was missing entirely (`_FEED_TIMEOUT_SECONDS`,
+  15s), applied via the global default socket timeout and restored in a
+  `finally` so no other task inherits it.
+- `certifi` promoted to a declared dependency in `requirements.txt` — it was
+  already installed, but only as a transitive dependency of `requests`.
+- Three tests added (31 total): the handler is certifi-backed, the timeout is
+  applied, and the timeout is restored *even when the fetch raises*.
+- Guide 11: new `CERTIFICATE_VERIFY_FAILED` troubleshooting entry, a "0.5 — can
+  it reach the feeds at all?" step ahead of the Ollama steps, and a note that
+  `gemini` and `gemma` are one letter apart.
+- New `study/12-reporting-a-bug-on-github.md` — how to write this class of bug
+  up as an issue, using this bug as the worked example. Indexed in the README
+  and `00-start-here.md`.
+- Added `.github/ISSUE_TEMPLATE/bug_report.md`, whose Environment block asks
+  which machine it fails on *and* which it works on.
+- Gitignored `agent-hub/study/.obsidian/` — per-machine editor UI state.
+
+**Decisions**
+- **Fixed it in code rather than only on the Mac.** Running macOS's
+  `Install Certificates.command` would have unblocked things in one command, but
+  the fix would live on one machine and silently not exist on the next one. The
+  code change makes feed fetching behave the same everywhere, which is the whole
+  point of a repo that targets two operating systems.
+- **Kept the timeout as a module constant, not a `settings.yaml` option.** No
+  evidence yet that it needs to differ per machine; promoting it later is easy.
+- Left the `finished OK`-on-empty-digest behaviour alone for now and logged it
+  in STATUS as an open question, rather than widening this change.
+
+**Learned / gotchas**
+- **`requests` and `urllib` do not share a certificate store.** `requests` ships
+  certifi and points OpenSSL at it; `urllib` asks for the system default. On
+  Windows that reads the OS cert store and works, on a macOS python.org build it
+  reads an empty directory. So a cross-platform port can half-work — Telegram
+  delivering perfectly while every feed fails, in the same run, on the same
+  network. That contrast *was* the diagnosis.
+- **feedparser never raises on a network error.** It converts the `URLError`
+  into `bozo_exception` and returns an empty result, so the `try/except` around
+  `parse()` never fires. The failure surfaces only as a per-feed warning, and
+  the run is honestly reported as successful.
+- A task can be green and useless at the same time. "Did it crash?" and "did it
+  do anything?" are different questions.
+- The Mac's `settings.yaml` had `model: "gemini4:12b"` — a model that does not
+  exist anywhere (`gemini` is Google's hosted one; `gemma` is the pullable one).
+  Independent of the SSL bug, and it would still have produced headline-only
+  output after the certs were fixed.
+
+**Next**
+- Vic re-runs `--run-once news_digest` on the Mac mini after `pip install -r
+  requirements.txt` and setting `model: gemma3:latest`. **Everything macOS here
+  is unverified** — the fix was only proven on Windows (real feed fetched, 121
+  CAs loaded, 31 tests green).
+- If it works, that clears the way for the launchd deployment.
+
+---
+
 ## 2026-08-02 — Port NewsDocsObtainer in as the `news_digest` task
 
 **Who:** both

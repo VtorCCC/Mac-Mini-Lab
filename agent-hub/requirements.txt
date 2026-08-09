@@ -20,6 +20,11 @@ python-dotenv>=1.0
 # Parses RSS/Atom feeds (used by services/news/fetcher.py).
 feedparser>=6.0.12
 
+# The CA bundle used to verify HTTPS feeds. requests already installs certifi
+# for its own use, but services/news/fetcher.py imports it directly to hand the
+# same bundle to urllib — so it is a real dependency here, not a transitive one.
+certifi>=2024.2
+
 # Parses the irregular date strings feeds use when the pre-parsed form is
 # missing (used by services/news/fetcher.py).
 python-dateutil>=2.9

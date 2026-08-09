@@ -51,6 +51,7 @@ important idea in this project.
 | Fix something that's broken | [09 – Troubleshooting / FAQ](09-troubleshooting-faq.md) |
 | Look up a word I don't know | [10 – Glossary](10-glossary.md) |
 | See a real task, warts and all | [11 – The news digest task](11-the-news-digest-task.md) |
+| Write up a bug properly | [12 – Reporting a bug on GitHub](12-reporting-a-bug-on-github.md) |
 
 ## Two commands to remember
 

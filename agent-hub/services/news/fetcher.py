@@ -11,15 +11,35 @@ from __future__ import annotations
 
 import logging
 import re
+import socket
+import ssl
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from time import mktime
 from urllib.parse import urlparse
+from urllib.request import HTTPSHandler
 
+import certifi
 import feedparser
 from dateutil import parser as dateparser
 
 log = logging.getLogger("agent-hub.news.fetcher")
+
+# Verifying an HTTPS certificate needs a list of trusted authorities. `requests`
+# (which core/notifier.py uses for Telegram) ships its own copy — the certifi
+# package — and points OpenSSL straight at it, so it works anywhere. feedparser
+# goes through urllib instead, which asks OpenSSL for the *system* default: on
+# Windows that reads the OS certificate store and works fine, but on a macOS
+# python.org build it points at a directory that stays empty until you run
+# "Install Certificates.command". The result is that every feed fails with
+# CERTIFICATE_VERIFY_FAILED while Telegram keeps working — which is exactly how
+# this surfaced on the Mac mini. Handing urllib the same bundle requests already
+# uses makes both paths behave identically on every machine.
+_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
+# feedparser takes no timeout argument, so without this a feed that accepts the
+# connection and then goes silent would stall the 07:00 run indefinitely.
+_FEED_TIMEOUT_SECONDS = 15
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -85,11 +105,22 @@ def _feed_source(parsed_feed, fallback_url: str) -> str:
 
 def fetch_feed(url: str, cap: int, truncate: int) -> list[RawItem]:
     """Fetch one feed and return up to ``cap`` of its newest items."""
+    # A fresh handler per call: urllib overwrites a handler's .parent when it
+    # joins an opener, and feedparser builds a new opener on every parse(). The
+    # context is read-only in practice, so that part is safe to share.
+    handler = HTTPSHandler(context=_SSL_CONTEXT)
+
+    # setdefaulttimeout is process-global, so restore the old value afterwards
+    # instead of quietly imposing our timeout on every other task in the hub.
+    previous_timeout = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(_FEED_TIMEOUT_SECONDS)
     try:
-        parsed = feedparser.parse(url)
+        parsed = feedparser.parse(url, handlers=[handler])
     except Exception as exc:  # feedparser rarely raises, but be defensive
         log.warning("feed parse failed: %s — %s", url, exc)
         return []
+    finally:
+        socket.setdefaulttimeout(previous_timeout)
 
     # bozo=1 means the feed was malformed. If we still got entries out of it,
     # use them; if not, there's nothing to salvage.

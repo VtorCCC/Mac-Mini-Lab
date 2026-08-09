@@ -18,3 +18,8 @@ logs/*.log
 logs/*.log.*
 launchd.out.log
 launchd.err.log
+
+# --- editor state ---
+# Obsidian is handy for reading study/ as a linked notebook, but its workspace
+# files are per-machine UI state (which panes were open, on which monitor).
+study/.obsidian/

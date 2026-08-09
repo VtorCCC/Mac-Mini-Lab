@@ -176,8 +176,9 @@ order — each step's failure has a different fix.
 
 ### 0. Install the new dependencies
 
-This task added four (`feedparser`, `python-dateutil`, `pydantic`,
-`pydantic-ai-slim`). Pulling the code is not enough — from `agent-hub/`:
+This task added five (`feedparser`, `python-dateutil`, `pydantic`,
+`pydantic-ai-slim`, `certifi`). Pulling the code is not enough — from
+`agent-hub/`:
 
 ```bash
 pip install -r requirements.txt
@@ -190,6 +191,20 @@ python main.py --list
 ```
 
 `news_digest` should appear as `enabled`. If it doesn't, nothing below matters.
+
+### 0.5 Can it reach the feeds at all?
+
+Every step below is about the *LLM* half. None of it matters if the *network*
+half is broken, and that failure is quiet — the task still logs `finished OK`,
+just with nothing in it. Check the feeds first:
+
+```bash
+python -c "from services.news.fetcher import fetch_feed; print(len(fetch_feed('https://hnrss.org/frontpage', 3, 300)))"
+```
+
+A number greater than `0` means feeds work. `0` means read the
+`CERTIFICATE_VERIFY_FAILED` entry in [Troubleshooting](#troubleshooting) below —
+this is the exact thing that bit the first Mac mini run.
 
 ### 1. Is Ollama there, and what does it have?
 
@@ -273,6 +288,51 @@ only thing that proves the whole chain — launchd, Ollama, feeds, LLM, Telegram
 
 ## Troubleshooting
 
+**`0 items` and a wall of `CERTIFICATE_VERIFY_FAILED` warnings**
+
+The log looks like this, once per feed, and the run still ends `finished OK`:
+
+```
+WARNING | agent-hub.news.fetcher | feed returned no entries: https://hnrss.org/frontpage
+         (<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] unable to get local issuer certificate>)
+INFO    | agent-hub | Digest built: 0 items across 4 sections
+```
+
+This is a **certificate** problem, not a network one, and the tell is that the
+Telegram message still arrives. Two different libraries do HTTPS here:
+
+| What | Library | Where its trusted authorities come from |
+|------|---------|------------------------------------------|
+| Telegram (`core/notifier.py`) | `requests` | ships its own bundle — the `certifi` package |
+| RSS feeds (`services/news/fetcher.py`) | `feedparser` → `urllib` | asks OpenSSL for the system default |
+
+On Windows that system default reads the OS certificate store, so it just
+works. On macOS, a python.org build points at a directory that stays **empty**
+until you run its setup script — so every feed fails while Telegram is fine.
+Same machine, same second, same network: that split is the whole diagnosis.
+
+`fetcher.py` now hands `urllib` the same certifi bundle `requests` uses, so a
+current checkout should not hit this at all. If you are on an older checkout, or
+some other tool on the Mac shows the same error, fix the Python install itself:
+
+```bash
+/Applications/Python\ 3.11/Install\ Certificates.command
+```
+
+Adjust the version to match. If that file doesn't exist, your Python came from
+Homebrew rather than python.org — use this instead:
+
+```bash
+brew install ca-certificates && pip install --upgrade certifi
+```
+
+To confirm which Python you are actually running, and whether it can see any
+authorities at all:
+
+```bash
+python -c "import ssl; print(ssl.get_default_verify_paths())"
+```
+
 **Every section says "(summarization failed)"**
 Your model probably doesn't support the current `output_mode`. Check the log:
 
@@ -287,7 +347,18 @@ Ollama isn't up. On the Mac mini it needs to be running as a service *before*
 agent-hub fires at 07:00 — a login-only Ollama won't be there after a reboot.
 
 **"Model 'x' is not pulled"**
-Run `ollama pull x`, or point `model:` at something `ollama list` shows.
+Run `ollama pull x`, or point `model:` at something `ollama list` shows. Read
+the name in the error carefully first — the message helpfully prints what *is*
+available. `gemini` (Google's hosted model) and `gemma` (the open one you can
+actually pull) are one letter apart and easy to cross; the first Mac mini run
+had `gemini4:12b` in `settings.yaml` and no such model exists.
+
+**A run that never finishes**
+Feeds are fetched with a 15-second timeout (`_FEED_TIMEOUT_SECONDS` in
+`services/news/fetcher.py`) precisely so one silent feed can't stall the 07:00
+run forever. If you need to change it, note that it is applied by setting the
+process-global default socket timeout and then putting the previous value back
+— that restore is deliberate, so don't drop it.
 
 **`llama-server process has terminated: exit status 0xc0000409`**
 The model itself is crashing, not your code. Both `gemma4:latest` and
